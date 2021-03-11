@@ -6,7 +6,7 @@
 #include <exception>
 #include <iterator>
 #include <memory>
-#include <drm/drm_fourcc.h>
+#include <libdrm/drm_fourcc.h>
 
 #include "ALVR-common/packet_types.h"
 #include "alvr_server/ClientConnection.h"
