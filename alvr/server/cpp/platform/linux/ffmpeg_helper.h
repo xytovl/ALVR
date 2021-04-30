@@ -5,6 +5,7 @@
 
 extern "C" struct AVBufferRef;
 extern "C" struct AVDictionary;
+extern "C" struct AVHWFramesContext;
 extern "C" struct AVVkFrame;
 extern "C" struct AVFrame;
 
@@ -45,6 +46,7 @@ public:
   ~VkFrameCtx();
 
   AVBufferRef *ctx;
+  AVHWFramesContext * hw_frames_ctx();
 };
 
 class VkFrame

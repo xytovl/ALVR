@@ -60,7 +60,7 @@ std::vector<AVFrame*> map_frames(AVBufferRef *hw_device_ctx, std::vector<alvr::V
   AVBufferRef *hw_frames_ref;
   int err = 0;
 
-  auto input_frame_ctx = (AVHWFramesContext*)vk_frame_ctx.ctx->data;
+  auto input_frame_ctx = vk_frame_ctx.hw_frames_ctx();
 
   if (!(hw_frames_ref = av_hwframe_ctx_alloc(hw_device_ctx))) {
     throw std::runtime_error("Failed to create VAAPI frame context.");

@@ -56,13 +56,12 @@ alvr::VkContext::~VkContext()
 
 alvr::VkFrameCtx::VkFrameCtx(VkContext & vkContext, vk::ImageCreateInfo image_create_info)
 {
-  AVHWFramesContext *frames_ctx = NULL;
   int err = 0;
 
   if (!(ctx = av_hwframe_ctx_alloc(vkContext.ctx))) {
     throw std::runtime_error("Failed to create vulkan frame context.");
   }
-  frames_ctx = (AVHWFramesContext *)(ctx->data);
+  AVHWFramesContext * frames_ctx = hw_frames_ctx();
   frames_ctx->format = AV_PIX_FMT_VULKAN;
   frames_ctx->sw_format = vk_format_to_av_format(image_create_info.format);
   frames_ctx->width = image_create_info.extent.width;
@@ -72,6 +71,10 @@ alvr::VkFrameCtx::VkFrameCtx(VkContext & vkContext, vk::ImageCreateInfo image_cr
     av_buffer_unref(&ctx);
     throw alvr::AvException("Failed to initialize vulkan frame context:", err);
   }
+}
+
+AVHWFramesContext* alvr::VkFrameCtx::hw_frames_ctx() {
+	return (AVHWFramesContext *)(ctx->data);
 }
 
 alvr::VkFrameCtx::~VkFrameCtx()

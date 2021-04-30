@@ -54,11 +54,10 @@ void set_hwframe_ctx(AVCodecContext *ctx, AVBufferRef *hw_device_ctx)
   av_buffer_unref(&hw_frames_ref);
 }
 
-AVFrame * make_transferred_frame(AVFrame *vk_frame, AVBufferRef *hw_device_ctx)
+AVFrame * make_transferred_frame(AVHWFramesContext *vk_frames_ctx, AVBufferRef *hw_device_ctx)
 {
   AVBufferRef *hw_frames_ref;
   AVHWFramesContext *frames_ctx = NULL;
-  AVHWFramesContext *vk_frames_ctx = (AVHWFramesContext *)vk_frame->hw_frames_ctx;
   int err = 0;
 
   if (!(hw_frames_ref = av_hwframe_ctx_alloc(hw_device_ctx))) {
@@ -66,17 +65,7 @@ AVFrame * make_transferred_frame(AVFrame *vk_frame, AVBufferRef *hw_device_ctx)
   }
   frames_ctx = (AVHWFramesContext *)(hw_frames_ref->data);
   frames_ctx->format = AV_PIX_FMT_CUDA;
-  switch (vk_frames_ctx->format)
-  {
-    case AV_PIX_FMT_ABGR:
-      frames_ctx->sw_format = AV_PIX_FMT_0BGR;
-      break;
-    case AV_PIX_FMT_ARGB:
-      frames_ctx->sw_format = AV_PIX_FMT_0RGB;
-      break;
-    default:
-      frames_ctx->sw_format = vk_frames_ctx->sw_format;
-  }
+  frames_ctx->sw_format = vk_frames_ctx->sw_format;
   frames_ctx->width = vk_frames_ctx->width;
   frames_ctx->height = vk_frames_ctx->height;
   frames_ctx->initial_pool_size = 1;
@@ -98,6 +87,19 @@ AVFrame * make_transferred_frame(AVFrame *vk_frame, AVBufferRef *hw_device_ctx)
 
 alvr::EncodePipelineNVENC::EncodePipelineNVENC(std::vector<VkFrame>& input_frames, VkFrameCtx& vk_frame_ctx)
 {
+  // Hack the vulkan format to transform ARGB to 0RGB
+  auto av_vk_frame_ctx = vk_frame_ctx.hw_frames_ctx();
+  switch (av_vk_frame_ctx->format)
+  {
+    case AV_PIX_FMT_ABGR:
+      av_vk_frame_ctx->sw_format = AV_PIX_FMT_0BGR;
+      break;
+    case AV_PIX_FMT_ARGB:
+      av_vk_frame_ctx->sw_format = AV_PIX_FMT_0RGB;
+      break;
+    default:
+      break;
+  }
   for (auto& input_frame: input_frames)
   {
     vk_frames.push_back(input_frame.make_av_frame(vk_frame_ctx).release());
@@ -147,7 +149,7 @@ alvr::EncodePipelineNVENC::EncodePipelineNVENC(std::vector<VkFrame>& input_frame
 
   set_hwframe_ctx(encoder_ctx, hw_ctx);
 
-  transferred_frame = make_transferred_frame(vk_frames[0], hw_ctx);
+  transferred_frame = make_transferred_frame(vk_frame_ctx.hw_frames_ctx(), hw_ctx);
 
   err = avcodec_open2(encoder_ctx, codec, NULL);
   if (err < 0) {
@@ -171,6 +173,8 @@ void alvr::EncodePipelineNVENC::EncodeFrame(uint32_t frame_index, bool idr, std:
 {
   assert(frame_index < vk_frames.size());
   int err = av_hwframe_transfer_data(transferred_frame, vk_frames[frame_index], 0);
+  if (err != 0)
+    throw alvr::AvException("av_hwframe_transfer_data failed:", err);
 
   transferred_frame->pict_type = idr ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_NONE;
   transferred_frame->pts = std::chrono::steady_clock::now().time_since_epoch().count();
