@@ -13,7 +13,7 @@ namespace wsi {
 
 class display {
   public:
-    display(layer::device_private_data& device_data, uint32_t queue_family_index, uint32_t queue_index);
+    display(layer::device_private_data& device_data);
     ~display();
 
     VkFence get_vsync_fence();
@@ -26,8 +26,6 @@ class display {
     std::atomic_bool m_exiting{false};
     std::thread m_vsync_thread;
     VkFence vsync_fence = VK_NULL_HANDLE;
-    uint32_t m_queue_family_index;
-    uint32_t m_queue_index;
     layer::device_private_data& m_device_data;
 };
 

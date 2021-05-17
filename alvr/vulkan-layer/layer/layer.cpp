@@ -274,22 +274,22 @@ VKAPI_ATTR VkResult create_device(VkPhysicalDevice physicalDevice,
     modified_info.ppEnabledExtensionNames = modified_enabled_extensions.data();
     modified_info.enabledExtensionCount = modified_enabled_extensions.size();
 
-    // Add one queue to safely submit vsync from our thread
+    // Add one queue to safely submit fences and semaphores
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfo(pCreateInfo->pQueueCreateInfos, pCreateInfo->pQueueCreateInfos + pCreateInfo->queueCreateInfoCount);
     assert(queueCreateInfo.size() > 0);
     std::vector<VkQueueFamilyProperties> props(queueCreateInfo.size());
     uint32_t size = props.size();
     inst_data.disp.GetPhysicalDeviceQueueFamilyProperties(physicalDevice, &size, props.data());
     std::vector<float> queuePriorities;
-    size_t display_queue = 0;
-    for (; display_queue < size ; ++display_queue)
+    size_t private_queue = 0;
+    for (; private_queue < size ; ++private_queue)
     {
-      if (queueCreateInfo[display_queue].queueCount >= props[display_queue].queueCount)
+      if (queueCreateInfo[private_queue].queueCount >= props[private_queue].queueCount)
         continue;
-      queuePriorities = std::vector<float>(queueCreateInfo[display_queue].pQueuePriorities, queueCreateInfo[display_queue].pQueuePriorities + queueCreateInfo[display_queue].queueCount);
-      queueCreateInfo[display_queue].queueCount += 1;
+      queuePriorities = std::vector<float>(queueCreateInfo[private_queue].pQueuePriorities, queueCreateInfo[private_queue].pQueuePriorities + queueCreateInfo[private_queue].queueCount);
+      queueCreateInfo[private_queue].queueCount += 1;
       queuePriorities.push_back(1);
-      queueCreateInfo[display_queue].pQueuePriorities = queuePriorities.data();
+      queueCreateInfo[private_queue].pQueuePriorities = queuePriorities.data();
       break;
     }
     modified_info.pQueueCreateInfos = queueCreateInfo.data();
@@ -307,7 +307,8 @@ VKAPI_ATTR VkResult create_device(VkPhysicalDevice physicalDevice,
 
     std::unique_ptr<device_private_data> device{
         new device_private_data{inst_data, physicalDevice, *pDevice, table, loader_callback}};
-    device->display = std::make_unique<wsi::display>(*device, queueCreateInfo[display_queue].queueFamilyIndex, queueCreateInfo[display_queue].queueCount - 1);
+    device->queue = std::make_unique<wsi::queue>(*device, queueCreateInfo[private_queue].queueFamilyIndex, queueCreateInfo[private_queue].queueCount - 1);
+    device->display = std::make_unique<wsi::display>(*device);
     device_private_data::set(*pDevice, std::move(device));
     return VK_SUCCESS;
 }

@@ -237,11 +237,6 @@ class swapchain_base {
     VkDevice m_device;
 
     /**
-     *  @brief Handle to the queue used for signalling submissions
-     */
-    VkQueue m_queue;
-
-    /**
      * @brief Return the VkAllocationCallbacks passed in this object constructor.
      */
     const VkAllocationCallbacks *get_allocation_callbacks() {

@@ -26,6 +26,7 @@
 
 #include "util/platform_set.hpp"
 #include "wsi/display.hpp"
+#include "wsi/queue.hpp"
 
 #include <vulkan/vk_icd.h>
 #include <vulkan/vk_layer.h>
@@ -256,6 +257,7 @@ class device_private_data {
     const VkPhysicalDevice physical_device;
     const VkDevice device;
 
+		std::unique_ptr<wsi::queue> queue;
     std::unique_ptr<wsi::display> display;
   private:
     std::unordered_set<VkSwapchainKHR> swapchains;

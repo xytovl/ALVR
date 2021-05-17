@@ -193,11 +193,7 @@ VkResult swapchain::create_image(const VkImageCreateInfo &image_create,
         return res;
     }
 
-    VkSubmitInfo submit = {};
-    submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit.signalSemaphoreCount = 1;
-    submit.pSignalSemaphores = &image.semaphore;
-    m_device_data.disp.QueueSubmit(m_queue, 1, &submit, VK_NULL_HANDLE);
+    m_device_data.queue->signal(image.semaphore, VK_NULL_HANDLE);
 
     VkSemaphoreGetFdInfoKHR sem_fd_info = {};
     sem_fd_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR;

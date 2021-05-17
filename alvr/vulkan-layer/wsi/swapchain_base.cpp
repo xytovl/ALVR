@@ -130,8 +130,7 @@ swapchain_base::swapchain_base(layer::device_private_data &dev_data,
       m_first_present(true), m_pending_buffer_pool{nullptr, 0, 0, 0},
       m_allocator(callbacks, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT), m_swapchain_images(m_allocator),
       m_surface(VK_NULL_HANDLE), m_present_mode(VK_PRESENT_MODE_IMMEDIATE_KHR),
-      m_descendant(VK_NULL_HANDLE), m_ancestor(VK_NULL_HANDLE), m_device(VK_NULL_HANDLE),
-      m_queue(VK_NULL_HANDLE) {}
+      m_descendant(VK_NULL_HANDLE), m_ancestor(VK_NULL_HANDLE), m_device(VK_NULL_HANDLE) {}
 
 VkResult swapchain_base::init(VkDevice device,
                               const VkSwapchainCreateInfoKHR *swapchain_create_info) {
@@ -206,12 +205,6 @@ VkResult swapchain_base::init(VkDevice device,
     result = m_free_image_semaphore.init(m_swapchain_images.size());
     if (result != VK_SUCCESS) {
         assert(result == VK_ERROR_OUT_OF_HOST_MEMORY);
-        return result;
-    }
-
-    m_device_data.disp.GetDeviceQueue(m_device, 0, 0, &m_queue);
-    result = m_device_data.SetDeviceLoaderData(m_device, m_queue);
-    if (VK_SUCCESS != result) {
         return result;
     }
 
@@ -290,10 +283,8 @@ void swapchain_base::teardown() {
         wait_for_pending_buffers();
     }
 
-    if (m_queue != VK_NULL_HANDLE) {
-        /* Make sure the vkFences are done signaling. */
-        m_device_data.disp.QueueWaitIdle(m_queue);
-    }
+    /* Make sure the vkFences are done signaling. */
+    m_device_data.queue->waitIdle();
 
     /* We are safe to destroy everything. */
     if (m_thread_sem_defined) {
@@ -354,20 +345,7 @@ VkResult swapchain_base::acquire_next_image(uint64_t timeout, VkSemaphore semaph
 
     assert(i < m_swapchain_images.size());
 
-    if (VK_NULL_HANDLE != semaphore || VK_NULL_HANDLE != fence) {
-        VkSubmitInfo submit = {};
-        submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-        if (VK_NULL_HANDLE != semaphore) {
-            submit.signalSemaphoreCount = 1;
-            submit.pSignalSemaphores = &semaphore;
-        }
-
-        submit.commandBufferCount = 0;
-        submit.pCommandBuffers = nullptr;
-        retval = m_device_data.disp.QueueSubmit(m_queue, 1, &submit, fence);
-        assert(retval == VK_SUCCESS);
-    }
+    m_device_data.queue->signal(semaphore, fence);
 
     return retval;
 }
