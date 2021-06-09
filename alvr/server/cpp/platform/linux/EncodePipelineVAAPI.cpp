@@ -146,6 +146,7 @@ alvr::EncodePipelineVAAPI::EncodePipelineVAAPI(std::vector<VkFrame>& input_frame
   encoder_ctx->pix_fmt = AV_PIX_FMT_VAAPI;
   encoder_ctx->max_b_frames = 0;
   encoder_ctx->bit_rate = settings.mEncodeBitrateMBs * 1024 * 1024;
+  encoder_ctx->slices = 2;
 
   set_hwframe_ctx(encoder_ctx, hw_ctx);
 

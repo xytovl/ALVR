@@ -17,8 +17,7 @@ public:
 
     bool fecFailure();
 private:
-    void push(const std::byte *buffer, int length, uint64_t frameIndex);
-    int findVPSSPS(const std::byte *frameBuffer, int frameByteSize);
+    void push(const std::byte *buffer, const std::byte *end, uint64_t frameIndex);
 
     bool m_enableFEC;
 
